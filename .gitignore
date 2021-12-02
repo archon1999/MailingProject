@@ -1,0 +1,7 @@
+/.vscode/
+/__pycache__/
+/**/*.pyc
+/log/
+/**/*.out
+/ssh.py
+/judge/problems/chroot/
