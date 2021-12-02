@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сайт</title>
+    <link rel="stylesheet" href="/static/assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/assets/css/main.css">
+    <link rel="stylesheet" href="/static/assets/css/dt-global_style.css">
+    <link rel="stylesheet" href="/static/assets/css/sweetalert.css">
+    <link rel="stylesheet" href="/static/assets/css/sweetalert2.min.css">
+
+    <link rel="icon" type="image/x-icon" href="/static/assets/img/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap" rel="stylesheet">
+ 
+    <script src="/static/assets/js/jquery.min.js"></script>
+    <script src="/static/assets/js/bootstrap.min.js"></script>
+    <script src="/static/assets/js/sweetalert.js"></script>
+    <script src="/static/assets/js/sweetalert2.min.js"></script>
+    <script src="/static/assets/js/custom-sweetalert.js"></script>
+</head>
+<body>
+    <div class="main-container" id="container">
+        <div id="content" class="main-content">                        
+            <div class="layout-px-spacing">
+                <div class="row layout-top-spacing" id="cancel-row">
+                    {% for mailing_form in mailing_forms %}
+                    <div class="col-8 offset-2 mt-5" id="mailing-form-{{ mailing_form.id }}">
+                        <div class="layout-spacing">
+                            <div class="widget widget-content-area">
+                                <p class="pl-2 mt-2">{{ forloop.counter }}. Отправить сообщение пользователю по ссылке: 
+                                    <strong><a class="text-primary" href="{{ mailing_form.mailing_link.link }}">{{ mailing_form.mailing_link.link }}</a></strong>
+                                </p>
+                                <blockquote class="blockquote">
+                                    {{ mailing_form.body|safe }}
+                                </blockquote>
+                                <button type="button" class="mb-4 mt-2 btn-block btn btn-sm btn-primary" onclick="copy_filtered_body_{{ forloop.counter }}()">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-copy"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                </button> 
+                                <form action="javascript:void(0);">
+                                    <label for="" class="pl-2 text-primary">
+                                        <strong>Ссылка на скриншот: </strong>
+                                    </label>
+                                    <input type="url" class="form-control" id="screenshot_link_{{ forloop.counter }}" required>
+                                    <button class="btn btn-primary mt-3 mb-3 btn-block" onclick="submit_{{ forloop.counter }}()">Подтвердить</button>
+                                </form>
+                            </div>
+                        </div>              
+                    </div>
+                    <script>
+                        function submit_{{ forloop.counter }}(){
+                            var text = `{{ mailing_form.body | safe }}`;
+                            var link_id = {{ mailing_form.mailing_link.id }};
+                            var screenshot_link = $("#screenshot_link_{{ forloop.counter }}").val();
+                            $.post('', {
+                                text: text,
+                                link_id: link_id,
+                                csrfmiddlewaretoken: "{{ csrf_token }}",
+                                screenshot_link: screenshot_link,
+                            }).done(function( data ) {  
+                                const toast = swal.mixin({
+                                    toast: true,
+                                    position: 'top-end',
+                                    showConfirmButton: false,
+                                    timer: 3000,
+                                    padding: '2em'
+                                });
+
+                                toast({
+                                    type: 'success',
+                                    title: 'Отправлено',
+                                    padding: '2em',
+                                })
+                                $("#mailing-form-{{ mailing_form.id }}").detach();
+                            })
+                        }
+
+                        function copy_filtered_body_{{ forloop.counter }}(){
+                            var text = `{{ mailing_form.filtered_body }}`;
+                            var textarea = document.body.appendChild(document.createElement("textarea"));
+                            textarea.value = text;
+                            textarea.focus();
+                            textarea.select();
+                            document.execCommand('copy');
+                            textarea.parentNode.removeChild(textarea);
+                        }
+                    </script>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
