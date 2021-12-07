@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="/static/assets/css/dt-global_style.css">
     <link rel="stylesheet" href="/static/assets/css/sweetalert.css">
     <link rel="stylesheet" href="/static/assets/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="/static/assets/css/file-upload-with-preview.min.css">
 
     <link rel="icon" type="image/x-icon" href="/static/assets/img/logo.png">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
@@ -19,77 +20,112 @@
     <script src="/static/assets/js/sweetalert.js"></script>
     <script src="/static/assets/js/sweetalert2.min.js"></script>
     <script src="/static/assets/js/custom-sweetalert.js"></script>
+    <script src="/static/assets/js/file-upload-with-preview.min.js"></script>
 </head>
 <body>
     <div class="main-container" id="container">
         <div id="content" class="main-content">                        
             <div class="layout-px-spacing">
                 <div class="row layout-top-spacing" id="cancel-row">
-                    {% for mailing_form in mailing_forms %}
-                    <div class="col-8 offset-2 mt-5" id="mailing-form-{{ mailing_form.id }}">
-                        <div class="layout-spacing">
-                            <div class="widget widget-content-area">
-                                <p class="pl-2 mt-2">{{ forloop.counter }}. Отправить сообщение пользователю по ссылке: 
-                                    <strong><a class="text-primary" href="{{ mailing_form.mailing_link.link }}">{{ mailing_form.mailing_link.link }}</a></strong>
-                                </p>
-                                <blockquote class="blockquote">
-                                    {{ mailing_form.body|safe }}
-                                </blockquote>
-                                <button type="button" class="mb-4 mt-2 btn-block btn btn-sm btn-primary" onclick="copy_filtered_body_{{ forloop.counter }}()">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-copy"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                                </button> 
-                                <form action="javascript:void(0);">
-                                    <label for="" class="pl-2 text-primary">
-                                        <strong>Ссылка на скриншот: </strong>
-                                    </label>
-                                    <input type="url" class="form-control" id="screenshot_link_{{ forloop.counter }}" required>
-                                    <button class="btn btn-primary mt-3 mb-3 btn-block" onclick="submit_{{ forloop.counter }}()">Подтвердить</button>
-                                </form>
+                    <div class="col-12">
+                        <form method="POST" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            {% for mailing_form in mailing_forms %}
+                            <div class="col-lg-8 offset-lg-2 mt-5" id="mailing-form-{{ mailing_form.id }}">
+                                <div class="layout-spacing">
+                                    <div class="widget widget-content-area">
+                                        <p class="pl-2 mt-2">{{ forloop.counter }}. Отправить сообщение пользователю по ссылке: 
+                                            <strong><a class="text-primary" href="{{ mailing_form.mailing_link.link }}">{{ mailing_form.mailing_link.link }}</a></strong>
+                                        </p>
+                                        <p class="pl-2 mt-2">{{ forloop.counter }}. Send a message to the User using the link: 
+                                            <strong><a class="text-primary" href="{{ mailing_form.mailing_link.link }}">{{ mailing_form.mailing_link.link }}</a></strong>
+                                        </p>
+                                        <blockquote class="blockquote">
+                                            {{ mailing_form.body|safe }}
+                                        </blockquote>
+                                        <button type="button" class="mb-4 mt-2 btn-block btn btn-sm btn-primary bs-tooltip" onclick="copy_filtered_body_{{ forloop.counter }}()">
+                                            <div style="font-size: 15px;">
+                                                Копировать / Copy
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-copy"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                            </div>
+                                        </button> 
+                                        <div class="custom-file-container" data-upload-id="screenshot{{ forloop.counter }}">
+                                            <label>Загрузить скриншот / Upload screenshot <a href="javascript:void(0)" class="custom-file-container__image-clear" title="Clear Image">x</a></label>
+                                            <label class="custom-file-container__custom-file" >
+                                                <input type="file" class="custom-file-container__custom-file__custom-file-input" accept="image/*" name="screenshot_{{ forloop.counter }}" required>
+                                                <input type="hidden" name="MAX_FILE_SIZE" value="10485760" />
+                                                <input type="hidden" id="body_{{ forloop.counter }}" name="body_{{ forloop.counter }}">
+                                                <input type="hidden" name="link_{{ forloop.counter }}" value="{{ mailing_form.mailing_link.id }}">
+                                                <span class="custom-file-container__custom-file__custom-file-control"></span>
+                                            </label>
+                                            <div class="custom-file-container__image-preview"></div>
+                                        </div>                                    
+                                        <script>
+                                            new FileUploadWithPreview('screenshot{{ forloop.counter }}');
+                                        </script>                                        
+                                    </div>
+                                </div>              
                             </div>
-                        </div>              
-                    </div>
-                    <script>
-                        function submit_{{ forloop.counter }}(){
-                            var text = `{{ mailing_form.body | safe }}`;
-                            var link_id = {{ mailing_form.mailing_link.id }};
-                            var screenshot_link = $("#screenshot_link_{{ forloop.counter }}").val();
-                            $.post('', {
-                                text: text,
-                                link_id: link_id,
-                                csrfmiddlewaretoken: "{{ csrf_token }}",
-                                screenshot_link: screenshot_link,
-                            }).done(function( data ) {  
-                                const toast = swal.mixin({
-                                    toast: true,
-                                    position: 'top-end',
-                                    showConfirmButton: false,
-                                    timer: 3000,
-                                    padding: '2em'
-                                });
+                            <script>    
+                                var text = `{{ mailing_form.body | safe }}`;
+                                $("#body_{{ forloop.counter }}").val(text);
+                                function copy_filtered_body_{{ forloop.counter }}(){
+                                    var text = `{{ mailing_form.filtered_body }}`;
+                                    var textarea = document.body.appendChild(document.createElement("textarea"));
+                                    textarea.value = text;
+                                    textarea.select();
+                                    document.execCommand('copy');
+                                    textarea.parentNode.removeChild(textarea);
 
-                                toast({
-                                    type: 'success',
-                                    title: 'Отправлено',
-                                    padding: '2em',
-                                })
-                                $("#mailing-form-{{ mailing_form.id }}").detach();
-                            })
-                        }
+                                    const toast = swal.mixin({
+                                        toast: true,
+                                        position: 'top-end',
+                                        showConfirmButton: false,
+                                        timer: 3000,
+                                        padding: '2em'
+                                    });
 
-                        function copy_filtered_body_{{ forloop.counter }}(){
-                            var text = `{{ mailing_form.filtered_body }}`;
-                            var textarea = document.body.appendChild(document.createElement("textarea"));
-                            textarea.value = text;
-                            textarea.focus();
-                            textarea.select();
-                            document.execCommand('copy');
-                            textarea.parentNode.removeChild(textarea);
-                        }
-                    </script>
-                    {% endfor %}
+                                    toast({
+                                        type: 'success',
+                                        title: 'Скопировано/Copied',
+                                        padding: '2em',
+                                    })
+                                }
+                            </script>
+                        </div>
+                        {% endfor %}
+                        <div class="col-lg-8 offset-lg-2 mb-4">
+                            <div class="widget widget-content-area">
+                                <label for="" class="pl-2 text-primary">
+                                    <strong>Ваш профиль / Your profile: </strong>
+                                </label>
+                                <input type="text" class="form-control" placeholder="Введите..." name="profile" required>
+                                <input type="submit" class="btn btn-success mt-3 mb-3 btn-block" value="Подтвердить / Confirm">
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
+
+{% if success %}
+<script>
+const toast = swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 3000,
+    padding: '2em'
+});
+
+toast({
+    type: 'success',
+    title: 'Успешно отправлено / Successfully',
+    padding: '2em',
+})
+
+{% endif %}
+</script>
 </body>
 </html>

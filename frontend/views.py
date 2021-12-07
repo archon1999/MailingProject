@@ -1,8 +1,10 @@
 import random
-from django.http.response import JsonResponse
+import traceback
 
+from django.http.response import JsonResponse, FileResponse
 from django.shortcuts import render, get_object_or_404
 from django import views
+from django.utils import timezone
 
 from bs4 import BeautifulSoup
 from bs4.element import Tag, NavigableString
@@ -101,19 +103,43 @@ class IndexView(views.View):
 
     def post(self, request, title):
         try:
-            text = request.POST.get('text', None)
-            link_id = request.POST.get('link_id', None)
-            screenshot_link = request.POST.get('screenshot_link', None)
-            mailing_link = MailingLink.objects.get(id=link_id)
-            User.objects.create(
-                mailing_link=mailing_link.link,
-                screenshot_link=screenshot_link,
-                text=text,
+            profile = request.POST['profile']
+            mailing = Mailing.objects.get(title=title)
+            user = User.objects.create(
+                profile=profile,
+                mailing=mailing,
             )
-            if mailing_link.must_deleted:
-                mailing_link.delete()
+            for index in range(1, mailing.forms_count+1):
+                file = request.FILES['screenshot_'+str(index)]
+                body = request.POST['body_'+str(index)]
+                mailing_link_id = request.POST['link_'+str(index)]
+                mailing_link = MailingLink.objects.get(id=mailing_link_id)
+                image = bytes()
+                for chunk in file.chunks():
+                    image += chunk
 
-        except:
+                now = timezone.now().strftime('%d-%m-%Y_%H:%M')
+                image_path = f'screenshots/{profile}_{title}_{now}_{index}.png'
+                with open(image_path, 'wb') as file:
+                    file.write(image)
+
+                user.forms.create(mailing_link=mailing_link.link,
+                                  text=body,
+                                  screenshot=image_path)
+                if mailing_link.must_deleted:
+                    mailing_link.delete()
+
+        except Exception:
+            print(traceback.print_exc())
             return JsonResponse({'sucess': False})
         else:
-            return JsonResponse({'sucess': True})
+            mailing_forms = get_random_forms(mailing)
+            return render(request, self.template_name, {
+                'mailing_forms': mailing_forms,
+                'success': True,
+            })
+
+
+class ScreenshotView(views.View):
+    def get(self, request, image_name):
+        return FileResponse(open('screenshots/'+image_name, 'rb'))

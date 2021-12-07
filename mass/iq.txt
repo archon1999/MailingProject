@@ -1,0 +1,7 @@
+only input output
+code generator
+cpython
+size of the code
+reverse(problems)
+antimasala 1
+antimasala 2
